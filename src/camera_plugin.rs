@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{input::mouse::MouseMotion, prelude::*};
 use dolly::prelude::*;
 
 struct DollyCameraController {
@@ -9,8 +9,8 @@ impl DollyCameraController {
     fn new() -> Self {
         let camera = CameraRig::builder()
             .with(YawPitch::new().yaw_degrees(45.0).pitch_degrees(-30.0))
-            .with(Smooth::new_rotation(1.5))
-            .with(Arm::new(dolly::glam::Vec3::Z * 8.0));
+            .with(Smooth::new_position_rotation(1.0, 1.0))
+            .with(Position::new(dolly::glam::vec3(0.0, 1.0, 1.0) * 8.0));
         DollyCameraController {
             camera: camera.build(),
         }
@@ -20,6 +20,8 @@ impl DollyCameraController {
 fn camera_controller(
     time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
+    mouse_button: Res<Input<MouseButton>>,
+    mut mouse_motion_events: EventReader<MouseMotion>,
     mut cameras: Query<(&mut DollyCameraController, &mut Transform)>,
 ) {
     // Can only controll a single camera for now
@@ -30,17 +32,35 @@ fn camera_controller(
             return;
         };
 
-    if keyboard_input.just_pressed(KeyCode::X) {
-        controller
-            .camera
-            .driver_mut::<YawPitch>()
-            .rotate_yaw_pitch(-90.0, 0.0);
-    } else if keyboard_input.just_pressed(KeyCode::Z) {
-        controller
-            .camera
-            .driver_mut::<YawPitch>()
-            .rotate_yaw_pitch(90.0, 0.0);
+    if mouse_button.pressed(MouseButton::Right) {
+        for mouse_delta in mouse_motion_events.iter() {
+            controller
+                .camera
+                .driver_mut::<YawPitch>()
+                .rotate_yaw_pitch(-0.3 * mouse_delta.delta.x, -0.3 * mouse_delta.delta.y);
+        }
     }
+
+    let mut translation_vector = dolly::glam::Vec3::ZERO;
+    if keyboard_input.pressed(KeyCode::W) {
+        translation_vector += -dolly::glam::Vec3::Z;
+    }
+    if keyboard_input.pressed(KeyCode::S) {
+        translation_vector += dolly::glam::Vec3::Z;
+    }
+    if keyboard_input.pressed(KeyCode::A) {
+        translation_vector += -dolly::glam::Vec3::X;
+    }
+    if keyboard_input.pressed(KeyCode::D) {
+        translation_vector += dolly::glam::Vec3::X;
+    }
+
+    translation_vector = controller.camera.final_transform.rotation * translation_vector.normalize_or_zero();
+
+    controller
+        .camera
+        .driver_mut::<Position>()
+        .translate(translation_vector * 10.0 * time.delta_seconds());
 
     let camera_transform = controller.camera.update(time.delta_seconds());
 
