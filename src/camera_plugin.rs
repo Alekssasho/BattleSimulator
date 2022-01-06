@@ -1,6 +1,7 @@
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use dolly::prelude::*;
 
+#[derive(Component)]
 struct DollyCameraController {
     camera: CameraRig,
 }
@@ -55,12 +56,19 @@ fn camera_controller(
         translation_vector += dolly::glam::Vec3::X;
     }
 
-    translation_vector = controller.camera.final_transform.rotation * translation_vector.normalize_or_zero();
+    translation_vector =
+        controller.camera.final_transform.rotation * translation_vector.normalize_or_zero();
+
+    let speed =  if keyboard_input.pressed(KeyCode::LShift) {
+        50.0
+    } else {
+        10.0
+    };
 
     controller
         .camera
         .driver_mut::<Position>()
-        .translate(translation_vector * 10.0 * time.delta_seconds());
+        .translate(translation_vector * speed * time.delta_seconds());
 
     let camera_transform = controller.camera.update(time.delta_seconds());
 
@@ -102,7 +110,7 @@ impl DollyCameraBundle {
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.add_system(camera_controller.system());
     }
 }
