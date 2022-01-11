@@ -69,6 +69,6 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(LogDiagnosticsPlugin::default()) // TODO: Do we need this ?
         .add_plugin(camera_plugin::CameraPlugin)
-        .add_startup_system(setup.system())
+        .add_startup_system(setup)
         .run();
 }
