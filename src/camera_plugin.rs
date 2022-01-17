@@ -59,7 +59,7 @@ fn camera_controller(
     translation_vector =
         controller.camera.final_transform.rotation * translation_vector.normalize_or_zero();
 
-    let speed =  if keyboard_input.pressed(KeyCode::LShift) {
+    let speed = if keyboard_input.pressed(KeyCode::LShift) {
         50.0
     } else {
         10.0

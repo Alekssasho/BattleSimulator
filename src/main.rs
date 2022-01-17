@@ -1,6 +1,7 @@
 mod camera_plugin;
 
-use bevy::{prelude::*, diagnostic::LogDiagnosticsPlugin};
+use bevy::{diagnostic::LogDiagnosticsPlugin, prelude::*};
+use bevy_mod_picking::*;
 
 fn setup(
     mut commands: Commands,
@@ -9,7 +10,9 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     //commands.spawn_scene(asset_server.load("../../TempoEngine/car_no_tempest.gltf#Scene0"));
-    commands.spawn_bundle(camera_plugin::DollyCameraBundle::new());
+    commands
+        .spawn_bundle(camera_plugin::DollyCameraBundle::new())
+        .insert_bundle(PickingCameraBundle::default());
     let theta = std::f32::consts::FRAC_PI_4;
     let light_transform = Mat4::from_euler(EulerRot::ZYX, 0.0, std::f32::consts::FRAC_PI_4, -theta);
     commands.spawn_bundle(DirectionalLightBundle {
@@ -21,41 +24,41 @@ fn setup(
         ..Default::default()
     });
 
-    let ground_material = materials.add(StandardMaterial{
+    let ground_material = materials.add(StandardMaterial {
         base_color: Color::GRAY,
         perceptual_roughness: 1.0,
         ..Default::default()
     });
 
-    let box_material = materials.add(StandardMaterial{
+    let box_material = materials.add(StandardMaterial {
         base_color: Color::YELLOW,
         ..Default::default()
     });
 
-    let plane_mesh = meshes.add(Mesh::from(shape::Plane{
-        size: 100.0
-    }));
+    let plane_mesh = meshes.add(Mesh::from(shape::Plane { size: 100.0 }));
 
-    let box_mesh = meshes.add(Mesh::from(shape::Cube{
-        size: 1.0
-    }));
+    let box_mesh = meshes.add(Mesh::from(shape::Cube { size: 1.0 }));
 
     // Spawn ground
-    commands.spawn_bundle(PbrBundle{
-        mesh: plane_mesh.clone(),
-        material: ground_material.clone(),
-        ..Default::default()
-    });
+    commands
+        .spawn_bundle(PbrBundle {
+            mesh: plane_mesh.clone(),
+            material: ground_material.clone(),
+            ..Default::default()
+        })
+        .insert(PickableMesh::default());
 
     // Spawn some boxes
-    for x in  0..5 {
+    for x in 0..5 {
         for y in 0..5 {
-            commands.spawn_bundle(PbrBundle{
-                mesh: box_mesh.clone(),
-                material: box_material.clone(),
-                transform: Transform::from_xyz(x as f32 * 2.0, 0.5, y as f32 * 2.0),
-                ..Default::default()
-            });
+            commands
+                .spawn_bundle(PbrBundle {
+                    mesh: box_mesh.clone(),
+                    material: box_material.clone(),
+                    transform: Transform::from_xyz(x as f32 * 2.0, 0.5, y as f32 * 2.0),
+                    ..Default::default()
+                })
+                .insert_bundle(PickableBundle::default());
         }
     }
 }
@@ -66,9 +69,16 @@ fn main() {
             color: Color::WHITE,
             brightness: 1.0 / 5.0f32,
         })
+        // Bevy plugins
         .add_plugins(DefaultPlugins)
         .add_plugin(LogDiagnosticsPlugin::default()) // TODO: Do we need this ?
+        // Our own plugins
         .add_plugin(camera_plugin::CameraPlugin)
+        // Third Party Bevy plugins
+        .add_plugin(DefaultPickingPlugins)
+        .add_plugin(DebugCursorPickingPlugin)
+        // Startup Systems
         .add_startup_system(setup)
+        // Normal Systems
         .run();
 }
