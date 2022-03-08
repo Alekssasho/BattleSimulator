@@ -1,4 +1,7 @@
-mod camera_plugin;
+mod camera;
+mod animation;
+
+use std::time::Duration;
 
 use bevy::{diagnostic::LogDiagnosticsPlugin, prelude::*};
 use bevy_mod_picking::*;
@@ -11,7 +14,7 @@ fn setup(
 ) {
     //commands.spawn_scene(asset_server.load("../../TempoEngine/car_no_tempest.gltf#Scene0"));
     commands
-        .spawn_bundle(camera_plugin::DollyCameraBundle::new())
+        .spawn_bundle(camera::DollyCameraBundle::new())
         .insert_bundle(PickingCameraBundle::default());
     let theta = std::f32::consts::FRAC_PI_4;
     let light_transform = Mat4::from_euler(EulerRot::ZYX, 0.0, std::f32::consts::FRAC_PI_4, -theta);
@@ -58,7 +61,12 @@ fn setup(
                     transform: Transform::from_xyz(x as f32 * 2.0, 0.5, y as f32 * 2.0),
                     ..Default::default()
                 })
-                .insert_bundle(PickableBundle::default());
+                .insert_bundle(PickableBundle::default())
+                // TODO: Maybe add animation components at runtime, and remove the afterwards
+                .insert(animation::MoveTo{
+                    target: Vec3::ZERO,
+                    time: Duration::ZERO,
+                });
         }
     }
 }
@@ -66,7 +74,7 @@ fn setup(
 fn move_selection_to_position(
     mouse_state: Res<Input<MouseButton>>,
     camera_query: Query<&PickingCamera>,
-    mut objects: Query<(&mut GlobalTransform, &Selection)>
+    mut objects: Query<(&mut animation::MoveTo, &Selection)>
 
 ) {
     if !mouse_state.just_pressed(MouseButton::Right) {
@@ -78,9 +86,10 @@ fn move_selection_to_position(
     if let Some((_, i)) = camera.intersect_top() {
         let position_to_go = i.position();
 
-        for (mut transform, selection) in objects.iter_mut() {
+        for (mut move_to, selection) in objects.iter_mut() {
             if selection.selected() {
-                *transform = GlobalTransform::from_translation(position_to_go);
+                move_to.target = position_to_go;
+                move_to.time = Duration::from_secs(2);
             }
         }
     }
@@ -97,7 +106,8 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(LogDiagnosticsPlugin::default()) // TODO: Do we need this ?
         // Our own plugins
-        .add_plugin(camera_plugin::CameraPlugin)
+        .add_plugin(camera::CameraPlugin)
+        .add_plugin(animation::AnimationPlugin)
         // Third Party Bevy plugins
         .add_plugins(DefaultPickingPlugins)
         .add_plugin(DebugCursorPickingPlugin)
