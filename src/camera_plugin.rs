@@ -33,7 +33,7 @@ fn camera_controller(
             return;
         };
 
-    if mouse_button.pressed(MouseButton::Right) {
+    if mouse_button.pressed(MouseButton::Middle) {
         for mouse_delta in mouse_motion_events.iter() {
             controller
                 .camera

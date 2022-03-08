@@ -63,6 +63,30 @@ fn setup(
     }
 }
 
+fn move_selection_to_position(
+    mouse_state: Res<Input<MouseButton>>,
+    camera_query: Query<&PickingCamera>,
+    mut objects: Query<(&mut GlobalTransform, &Selection)>
+
+) {
+    if !mouse_state.just_pressed(MouseButton::Right) {
+        return;
+    }
+
+    let camera = camera_query.get_single().unwrap();
+    // TODO: Search for ground mesh only
+    if let Some((_, i)) = camera.intersect_top() {
+        let position_to_go = i.position();
+
+        for (mut transform, selection) in objects.iter_mut() {
+            if selection.selected() {
+                *transform = GlobalTransform::from_translation(position_to_go);
+            }
+        }
+    }
+}
+
+
 fn main() {
     App::new()
         .insert_resource(bevy::pbr::AmbientLight {
@@ -75,10 +99,11 @@ fn main() {
         // Our own plugins
         .add_plugin(camera_plugin::CameraPlugin)
         // Third Party Bevy plugins
-        .add_plugin(DefaultPickingPlugins)
+        .add_plugins(DefaultPickingPlugins)
         .add_plugin(DebugCursorPickingPlugin)
         // Startup Systems
         .add_startup_system(setup)
         // Normal Systems
+        .add_system(move_selection_to_position)
         .run();
 }
